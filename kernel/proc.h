@@ -81,6 +81,7 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // Per-process state
 struct proc {
   struct spinlock lock;
+  int tainted; // Process has consumed designated untrusted input
 
   // p->lock must be held when using these:
   enum procstate state; // Process state

@@ -19,6 +19,30 @@
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
+path_is_inbox(const char *path)
+{
+  const char *a = path;
+  const char *b = "/inbox.txt";
+
+  while (*a && *b && *a == *b) {
+    a++;
+    b++;
+  }
+
+  if (*a == '\0' && *b == '\0')
+    return 1;
+
+  a = path;
+  b = "inbox.txt";
+
+  while (*a && *b && *a == *b) {
+    a++;
+    b++;
+  }
+
+  return *a == '\0' && *b == '\0';
+}
+static int
 argfd(int n, int *pfd, struct file **pf)
 {
   int fd;
@@ -208,7 +232,9 @@ sys_unlink(void)
 
   if (argstr(0, path, MAXPATH) < 0)
     return -1;
-
+  if (myproc()->tainted) {
+    return -1;
+  }
   begin_op();
   if ((dp = nameiparent(path, name)) == 0) {
     end_op();
@@ -383,6 +409,7 @@ sys_open(void)
   f->ip = ip;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+  f->untrusted = f->readable && path_is_inbox(path);
 
   if ((omode & O_TRUNC) && ip->type == T_FILE) {
     itrunc(ip);

@@ -35,6 +35,7 @@ filealloc(void)
   for (f = ftable.file; f < ftable.file + NFILE; f++) {
     if (f->ref == 0) {
       f->ref = 1;
+      f->untrusted = 0;
       release(&ftable.lock);
       return f;
     }
@@ -71,6 +72,7 @@ fileclose(struct file *f)
   ff = *f;
   f->ref = 0;
   f->type = FD_NONE;
+  f->untrusted = 0;
   release(&ftable.lock);
 
   if (ff.type == FD_PIPE) {
@@ -125,7 +127,8 @@ fileread(struct file *f, uint64 addr, int n)
   } else {
     panic("fileread");
   }
-
+  if (r > 0 && f->untrusted)
+    myproc()->tainted = 1;
   return r;
 }
 
